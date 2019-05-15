@@ -223,7 +223,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         public void TerminateContext()
         {
             if (!_contextExists) return;
-            NetMQConfig.ContextTerminate(true);
+            NetMQConfig.ContextTerminate();
             _contextExists = false;
         }
     }

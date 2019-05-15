@@ -13,12 +13,22 @@ namespace BrainVR.Eyetracking.PupilLabs
     {
         public PupilStatus Status;
         public PupilSettings Settings;
+        private PupilConnector _connector;
+
+        #region MonoBehaviour
+
+        void Awake()
+        {
+            _connector = new PupilConnector();
+        }
+        
+
+        #endregion
 
         #region Public API1
-
-        public bool Connect()
+        public void Connect()
         {
-            return false;
+            StartCoroutine(PupilConnector.Connect(retry: true, retryDelay: 5f));
         }
         
         #endregion

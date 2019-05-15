@@ -5,9 +5,15 @@ using System.IO;
 
 namespace BrainVR.Eyetracking.PupilLabs
 {
+    //formerly PupilTools int he pupilLabs examples
     public class PupilConnector
     {
+        //TODO redo to non static settings
         private static PupilSettings _settings {get {return PupilManager.Instance.Settings; }}
+
+        private static PupilConnection _connection = new PupilConnection();
+
+
         #region Delegates
         //InspectorGUI repaint
         public delegate void GUIRepaintAction();
@@ -18,7 +24,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         public delegate void OnDisconnectingDelegate();
         public delegate void OnReceiveDataDelegate(string topic, Dictionary<string, object> dictionary, byte[] thirdFrame = null);
 
-        public static event GUIRepaintAction WantRepaint;
         public static event OnCalibrationStartDeleg OnCalibrationStarted;
         public static event OnCalibrationEndDeleg OnCalibrationEnded;
         public static event OnCalibrationFailedDeleg OnCalibrationFailed;
@@ -27,7 +32,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         public static event OnReceiveDataDelegate OnReceiveData;
 
         #endregion
-
         #region EStatus
 
         private enum EStatus { Idle, ProcessingGaze, Calibration }
@@ -57,7 +61,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             get { return DataProcessState == EStatus.Calibration; }
             set { SetProcessState(!value, EStatus.Calibration); }
         }
-
         private static void SetProcessState(bool toOldState, EStatus newState)
         {
             if (toOldState)
@@ -72,7 +75,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         #endregion
 
         #region Recording
-
         private static bool isRecording;
         public static void StartRecording()
         {
@@ -88,16 +90,13 @@ namespace BrainVR.Eyetracking.PupilLabs
 
             recordingString = "Timestamp,Identifier,PupilPositionX,PupilPositionY,PupilPositionZ,UnityWorldPositionX,UnityWorldPositionY,UnityWorldPositionZ\n";
         }
-
         private static string recordingString;
-
         public static void StopRecording()
         {
             Send(new Dictionary<string, object> { { "subject", "recording.should_stop" } });
 
             isRecording = false;
         }
-
         private static Vector3 unityWorldPosition;
         private static void AddToRecording(string identifier, Vector3 position, bool isViewportPosition = false)
         {
@@ -116,17 +115,14 @@ namespace BrainVR.Eyetracking.PupilLabs
                 , unityWorldPosition.x.ToString("F4"), unityWorldPosition.y.ToString("F4"), unityWorldPosition.z.ToString("F4")
             );
         }
-
         public static void SaveRecording(string toPath)
         {
-            string filePath = toPath + "/" + "UnityGazeExport.csv";
+            var filePath = toPath + "/" + "UnityGazeExport.csv";
             File.WriteAllText(filePath, recordingString);
         }
-
         #endregion
 
         #region Dictionary processing
-
         private static Dictionary<string, object> _gazeDictionary;
         public static Dictionary<string, object> gazeDictionary
         {
@@ -186,7 +182,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             var topic = StringFromDictionary(gazeDictionary, "topic");
             if (topic.StartsWith("gaze.2D") && CalibrationMode == Calibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
         }
-
         private static object[] position_o;
         public static Vector3 ObjectToVector(object source)
         {
@@ -235,9 +230,11 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public static string TopicsForDictionary(Dictionary<string, object> dictionary)
         {
-            string topics = "";
-            foreach (var key in dictionary.Keys)
+            var topics = "";
+            foreach (string key in dictionary.Keys)
+            {
                 topics += key + ",";
+            }
             return topics;
         }
         public static Dictionary<object, object> BaseData()
@@ -249,63 +246,55 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         #endregion
 
-        #region Calibration
+        #region Connection
 
-        public static void RepaintGUI()
-        {
-            if (WantRepaint != null) WantRepaint();
-        }
-
-        public static PupilConnection Connection;
         public static bool IsConnected
         {
-            get { return Connection.IsConnected; }
-            set { Connection.IsConnected = value; }
+            get { return _connection.IsConnected; }
+            set { _connection.IsConnected = value; }
         }
         public static IEnumerator Connect(bool retry = false, float retryDelay = 5f)
         {
+            Debug.Log("Waiting for 3 s to connect");
             yield return new WaitForSeconds(3f);
-
+            Debug.Log("Trying to connect");
             while (!IsConnected)
             {
-                Connection.InitializeRequestSocket();
-
+                _connection.InitializeRequestSocket();
                 if (IsConnected) continue;
                 if (retry)
                 {
-                    UnityEngine.Debug.Log("Could not connect, Re-trying in 5 seconds ! ");
+                    Debug.Log("Could not connect, Re-trying in 5 seconds ! ");
                     yield return new WaitForSeconds(retryDelay);
-
                 }
                 else
                 {
-                    Connection.TerminateContext();
+                    _connection.TerminateContext();
                     yield return null;
                 }
             }
             Debug.Log(" Succesfully connected to Pupil! ");
 
             StartEyeProcesses();
-            RepaintGUI();
-            if (OnConnected == null) yield break;
-            OnConnected();
+            if (OnConnected != null) OnConnected();
         }
 
         public static void SubscribeTo(string topic)
         {
-            Connection.InitializeSubscriptionSocket(topic);
+            _connection.InitializeSubscriptionSocket(topic);
         }
 
         public static void UnSubscribeFrom(string topic)
         {
-            Connection.CloseSubscriptionSocket(topic);
+            _connection.CloseSubscriptionSocket(topic);
         }
 
         public static bool Send(Dictionary<string, object> dictionary)
         {
-            return Connection.sendRequestMessage(dictionary);
+            return _connection.sendRequestMessage(dictionary);
         }
-
+        #endregion
+        #region Calibration
         public static Calibration Calibration
         {
             get { return _settings.calibration; }
@@ -316,23 +305,18 @@ namespace BrainVR.Eyetracking.PupilLabs
             get { return _calibrationMode; }
             set
             {
-                if (IsConnected && !Connection.Is3DCalibrationSupported())
+                if (IsConnected && !_connection.Is3DCalibrationSupported())
                     value = Calibration.Mode._2D;
 
-                if (_calibrationMode != value)
-                {
-                    _calibrationMode = value;
-
-                    if (IsConnected)
-                        SetDetectionMode();
-                }
+                if (_calibrationMode == value) return;
+                _calibrationMode = value;
+                if (IsConnected) SetDetectionMode();
             }
         }
         public static Calibration.Type CalibrationType
         {
             get { return Calibration.currentCalibrationType; }
         }
-
         public static void StartCalibration()
         {
             if (IsGazing)
@@ -383,8 +367,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             });
 
             _calibrationData.Clear();
-
-            RepaintGUI();
         }
 
         public static void StopCalibration()
@@ -466,9 +448,10 @@ namespace BrainVR.Eyetracking.PupilLabs
         public static void AddCalibrationPointReferencePosition(float[] position, float timestamp)
         {
             if (CalibrationMode == Calibration.Mode._3D)
-                for (int i = 0; i < position.Length; i++)
+            {
+                for (var i = 0; i < position.Length; i++)
                     position[i] *= PupilSettings.PupilUnitScalingFactor;
-
+            }
             _calibrationData.Add(new Dictionary<string, object>() {
                 { CalibrationType.positionKey, position },
                 { "timestamp", timestamp },
@@ -497,10 +480,15 @@ namespace BrainVR.Eyetracking.PupilLabs
         private static void UpdateCalibrationMarkerColor(string eyeID, float value)
         {
             var currentColor = Calibration.Marker.color;
-            if (eyeID == PupilData.rightEyeID)
-                currentColor.g = value;
-            else if (eyeID == PupilData.leftEyeID)
-                currentColor.b = value;
+            switch (eyeID)
+            {
+                case PupilData.rightEyeID:
+                    currentColor.g = value;
+                    break;
+                case PupilData.leftEyeID:
+                    currentColor.b = value;
+                    break;
+            }
             Calibration.Marker.color = currentColor;
         }
 
@@ -535,22 +523,16 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public static void Disconnect()
         {
-            if (OnDisconnecting != null)
-                OnDisconnecting();
-
-            if (IsCalibrating)
-                StopCalibration();
-
-            Connection.CloseSockets();
+            if (OnDisconnecting != null) OnDisconnecting();
+            if (IsCalibrating) StopCalibration();
+            _connection.CloseSockets();
         }
 
         public static bool ReceiveDataIsSet { get { return OnReceiveData != null; } }
         public static void ReceiveData(string topic, Dictionary<string, object> dictionary, byte[] thirdFrame = null)
         {
-            if (OnReceiveData != null)
-                OnReceiveData(topic, dictionary, thirdFrame);
-            else
-                UnityEngine.Debug.Log("OnReceiveData is not set");
+            if (OnReceiveData != null) OnReceiveData(topic, dictionary, thirdFrame);
+            else Debug.Log("OnReceiveData is not set");
         }
 
         public static bool StopEyeProcesses()
@@ -566,16 +548,11 @@ namespace BrainVR.Eyetracking.PupilLabs
                 { "delay", 0.2f }
             };
 
-            if (Send(stopLeftEye))
-            {
-                eyeProcess1 = false;
-                if (Send(stopRightEye))
-                {
-                    eyeProcess0 = false;
-                    return true;
-                }
-            }
-            return false;
+            if (!Send(stopLeftEye)) return false;
+            eyeProcess1 = false;
+            if (!Send(stopRightEye)) return false;
+            eyeProcess0 = false;
+            return true;
         }
 
         public static void StartBinocularVectorGazeMapper()
