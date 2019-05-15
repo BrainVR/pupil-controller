@@ -69,9 +69,8 @@ namespace BrainVR.Eyetracking.PupilLabs
         public bool Is3DCalibrationSupported()
         {
             if ((PupilVersionNumbers.Count > 0) & (PupilVersionNumbers[0] >= 1)) return true;
-
             Debug.Log("Pupil version below 1 detected. V1 is required for 3D calibration");
-            PupilTools.CalibrationMode = Calibration.Mode._2D;
+            PupilController.CalibrationMode = Calibration.Mode._2D;
             return false;
         }
 
@@ -96,12 +95,11 @@ namespace BrainVR.Eyetracking.PupilLabs
             SubscriptionSocketForTopic[topic].Subscribe(topic);
 
             //André: Is this necessary??
-            //			subscriptionSocketForTopic[topic].Options.SendHighWatermark = PupilSettings.numberOfMessages;// 6;
+            //subscriptionSocketForTopic[topic].Options.SendHighWatermark = PupilSettings.numberOfMessages;// 6;
 
             SubscriptionSocketForTopic[topic].ReceiveReady += (s, a) =>
             {
                 var m = new NetMQMessage();
-
                 while (a.Socket.TryReceiveMultipartMessage(ref m))
                 {
                     // We read all the messages from the socket, but disregard the ones after a certain point
@@ -115,16 +113,16 @@ namespace BrainVR.Eyetracking.PupilLabs
 
                     if (PupilManager.Instance.Settings.debug.printMessageType) Debug.Log(msgType);
                     if (PupilManager.Instance.Settings.debug.printMessage) Debug.Log(MessagePackSerializer.ToJson(m[1].ToByteArray()));
-                    if (PupilTools.ReceiveDataIsSet) PupilTools.ReceiveData(msgType, MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream), thirdFrame);
+                    if (PupilController.ReceiveDataIsSet) PupilController.ReceiveData(msgType, MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream), thirdFrame);
                     
                     switch (msgType)
                     {
                         case "notify.calibration.successful":
-                            PupilTools.CalibrationFinished();
+                            PupilController.CalibrationFinished();
                             Debug.Log(msgType);
                             break;
                         case "notify.calibration.failed":
-                            PupilTools.CalibrationFailed();
+                            PupilController.CalibrationFailed();
                             Debug.Log(msgType);
                             break;
                         case "gaze":
@@ -136,17 +134,13 @@ namespace BrainVR.Eyetracking.PupilLabs
                         case "gaze.3d.1.":
                         case "gaze.3d.01.":
                             var dictionary = MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream);
-                            var confidence = PupilTools.FloatFromDictionary(dictionary, "confidence");
-                            if (PupilTools.IsCalibrating)
+                            var confidence = PupilController.FloatFromDictionary(dictionary, "confidence");
+                            if (PupilController.IsCalibrating)
                             {
-                                var eyeID = PupilTools.StringFromDictionary(dictionary, "id");
-                                PupilTools.UpdateCalibrationConfidence(eyeID, confidence);
+                                var eyeID = PupilController.StringFromDictionary(dictionary, "id");
+                                PupilController.UpdateCalibrationConfidence(eyeID, confidence);
                             }
-                            else if (msgType.StartsWith("gaze"))
-                            {
-                                if (confidence > ConfidenceThreshold) PupilTools.gazeDictionary = dictionary;
-                            }
-
+                            else if (msgType.StartsWith("gaze") & confidence > ConfidenceThreshold) PupilController.gazeDictionary = dictionary;
                             break;
                         case "frame.eye.0":
                         case "frame.eye.1":

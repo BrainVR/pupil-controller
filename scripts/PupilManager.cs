@@ -14,6 +14,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         public PupilStatus Status;
         public PupilSettings Settings;
         private PupilController _controller;
+        public bool IsConnected { get { return PupilController.IsConnected; }}
 
         #region MonoBehaviour
 
@@ -21,7 +22,11 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             _controller = new PupilController();
         }
-        
+
+        void OnApplicationQuit()
+        {
+            if (IsConnected) PupilController.Disconnect();
+        }
         #endregion
 
         #region Public API1
@@ -29,7 +34,12 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             StartCoroutine(PupilController.Connect(retry: true, retryDelay: 5f));
         }
-        
+
+        public void StartMonitoring()
+        {
+            PupilController.SubscribeTo("gaze");
+        }
+
         #endregion
 
     }
