@@ -6,7 +6,7 @@ using System.IO;
 namespace BrainVR.Eyetracking.PupilLabs
 {
     //formerly PupilTools int he pupilLabs examples
-    public class PupilConnector
+    public class PupilController
     {
         //TODO redo to non static settings
         private static PupilSettings _settings {get {return PupilManager.Instance.Settings; }}
