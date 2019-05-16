@@ -65,7 +65,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             }
             Is3DCalibrationSupported();
         }
-
         public bool Is3DCalibrationSupported()
         {
             if ((PupilVersionNumbers.Count > 0) & (PupilVersionNumbers[0] >= 1)) return true;
@@ -73,7 +72,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             PupilController.CalibrationMode = Calibration.Mode._2D;
             return false;
         }
-
         public void CloseSockets()
         {
             if (RequestSocket != null) RequestSocket.Close();
@@ -96,7 +94,6 @@ namespace BrainVR.Eyetracking.PupilLabs
 
             //André: Is this necessary??
             //subscriptionSocketForTopic[topic].Options.SendHighWatermark = PupilSettings.numberOfMessages;// 6;
-
             SubscriptionSocketForTopic[topic].ReceiveReady += (s, a) =>
             {
                 var m = new NetMQMessage();
@@ -111,6 +108,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                     byte[] thirdFrame = null;
                     if (m.FrameCount >= 3) thirdFrame = m[2].ToByteArray();
 
+                    Debug.Log(PupilManager.Instance.Settings.debug.printMessage);
                     if (PupilManager.Instance.Settings.debug.printMessageType) Debug.Log(msgType);
                     if (PupilManager.Instance.Settings.debug.printMessage) Debug.Log(MessagePackSerializer.ToJson(m[1].ToByteArray()));
                     if (PupilController.ReceiveDataIsSet) PupilController.ReceiveData(msgType, MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream), thirdFrame);
@@ -134,10 +132,10 @@ namespace BrainVR.Eyetracking.PupilLabs
                         case "gaze.3d.1.":
                         case "gaze.3d.01.":
                             var dictionary = MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream);
-                            var confidence = PupilController.FloatFromDictionary(dictionary, "confidence");
+                            var confidence = PupilDataParser.FloatFromDictionary(dictionary, "confidence");
                             if (PupilController.IsCalibrating)
                             {
-                                var eyeID = PupilController.StringFromDictionary(dictionary, "id");
+                                var eyeID = PupilDataParser.StringFromDictionary(dictionary, "id");
                                 PupilController.UpdateCalibrationConfidence(eyeID, confidence);
                             }
                             else if (msgType.StartsWith("gaze") & confidence > ConfidenceThreshold) PupilController.gazeDictionary = dictionary;
@@ -152,7 +150,6 @@ namespace BrainVR.Eyetracking.PupilLabs
                 }
             };
         }
-
         public void UpdateSubscriptionSockets()
         {
             var keys = new string[SubscriptionSocketForTopic.Count];
@@ -178,7 +175,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             if (subscriptionSocketToBeClosed == null) subscriptionSocketToBeClosed = new List<string>();
             if (!subscriptionSocketToBeClosed.Contains(topic)) subscriptionSocketToBeClosed.Add(topic);
         }
-
         public bool sendRequestMessage(Dictionary<string, object> data)
         {
             if (RequestSocket == null || !IsConnected) return false;
@@ -190,30 +186,33 @@ namespace BrainVR.Eyetracking.PupilLabs
             RequestSocket.SendMultipartMessage(m);
             return receiveRequestResponse();
         }
-
         public bool receiveRequestResponse()
         {
             // we are currently not doing anything with this
             var m = new NetMQMessage();
             return RequestSocket.TryReceiveMultipartMessage(_timeout, ref m);
         }
-
         public void SetPupilTimestamp(float time)
         {
             if (RequestSocket == null) return;
             RequestSocket.SendFrame("T " + time.ToString("0.00000000"));
             receiveRequestResponse();
         }
-
-        public string GetPupilTimestamp()
+        public float? GetPupilTimestamp()
         {
-            if (RequestSocket == null) return "not connected";
+            if (RequestSocket == null) Debug.Log("not connected");
             RequestSocket.SendFrame("t");
             var response = new NetMQMessage();
             RequestSocket.TryReceiveMultipartMessage(_timeout, ref response);
-            return response.ToString();
-        }
+            if (response.FrameCount == 1)
+            {
+                //do try parse
+                return float.Parse(response.First.ConvertToString());
+            }
+            Debug.Log("Received complex message " + response.ToString() + ". Cannot parse to time");
+            return null;
 
+        }
         public void TerminateContext()
         {
             if (!_contextExists) return;

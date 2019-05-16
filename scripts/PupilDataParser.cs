@@ -1,17 +1,16 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace BrainVR.Eyetracking.PupilLabs
 {
-    public class PupilDataParser
+    public static class PupilDataParser
     {
-        void ParseTopic(string topic, Dictionary<string, object> dictionary)
+        public static void ParseTopic(string topic, Dictionary<string, object> dictionary)
         {
             if (topic.StartsWith("pupil")) ParsePupilTopic(dictionary);
         }
 
-        void ParsePupilTopic(Dictionary<string, object> dictionary)
+        public static void ParsePupilTopic(Dictionary<string, object> dictionary)
         {
             foreach (var item in dictionary)
             {
@@ -59,6 +58,51 @@ namespace BrainVR.Eyetracking.PupilLabs
                 }
             }
         }
+
+        private static object IDo;
+        public static Vector3 ObjectToVector(object source)
+        {
+            var position_o = source as object[];
+            var result = Vector3.zero;
+            if (position_o.Length != 2 && position_o.Length != 3) Debug.Log("Array length not supported");
+            else
+            {
+                result.x = (float)(double)position_o[0];
+                result.y = (float)(double)position_o[1];
+                if (position_o.Length == 3) result.z = (float)(double)position_o[2];
+            }
+            return result;
+        }
+
+        public static Vector3 VectorFromDictionary(Dictionary<string, object> source, string key)
+        {
+            return source.ContainsKey(key) ? Position(source[key], false) : Vector3.zero;
+        }
+        public static Vector3 Position(object position, bool applyScaling)
+        {
+            var result = ObjectToVector(position);
+            if (applyScaling) result /= PupilSettings.PupilUnitScalingFactor;
+            return result;
+        }
+        public static float FloatFromDictionary(Dictionary<string, object> source, string key)
+        {
+            object valueO;
+            source.TryGetValue(key, out valueO);
+            return (float)(double)valueO;
+        }
+        public static string StringFromDictionary(Dictionary<string, object> source, string key)
+        {
+            var result = "";
+            if (source.TryGetValue(key, out IDo))
+                result = IDo.ToString();
+            return result;
+        }
+        public static Dictionary<object, object> DictionaryFromDictionary(Dictionary<string, object> source, string key)
+        {
+            if (source.ContainsKey(key)) return source[key] as Dictionary<object, object>;
+            return null;
+        }
+
     }
 
 }

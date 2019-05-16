@@ -31,7 +31,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         public static event OnReceiveDataDelegate OnReceiveData;
         #endregion
         #region EStatus
-
         private enum EStatus { Idle, ProcessingGaze, Calibration }
         private static EStatus _dataProcessState = EStatus.Idle;
         private static EStatus DataProcessState
@@ -97,7 +96,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         private static Vector3 unityWorldPosition;
         private static void AddToRecording(string identifier, Vector3 position, bool isViewportPosition = false)
         {
-            var timestamp = FloatFromDictionary(gazeDictionary, "timestamp");
+            var timestamp = PupilDataParser.FloatFromDictionary(gazeDictionary, "timestamp");
 
             unityWorldPosition = isViewportPosition ? _settings.currentCamera.ViewportToWorldPoint(position + Vector3.forward) : 
                 _settings.currentCamera.cameraToWorldMatrix.MultiplyPoint3x4(position);
@@ -145,8 +144,8 @@ namespace BrainVR.Eyetracking.PupilLabs
                 switch (key)
                 {
                     case "norm_pos": // 2D case
-                        eyeDataKey = key + "_" + StringFromDictionary(gazeDictionary, "id"); // we add the identifier to the key
-                        var position2D = Position(gazeDictionary[key], false);
+                        eyeDataKey = key + "_" + PupilDataParser.StringFromDictionary(gazeDictionary, "id"); // we add the identifier to the key
+                        var position2D = PupilDataParser.Position(gazeDictionary[key], false);
                         PupilData.AddGazeToEyeData(eyeDataKey, position2D);
                         if (isRecording) AddToRecording(eyeDataKey, position2D, true);
                         break;
@@ -157,13 +156,13 @@ namespace BrainVR.Eyetracking.PupilLabs
                             foreach (var item in (gazeDictionary[key] as Dictionary<object, object>))
                             {
                                 eyeDataKey = key + "_" + item.Key.ToString();
-                                var position = Position(item.Value, true);
+                                var position = PupilDataParser.Position(item.Value, true);
                                 position.y *= -1f;                          // Pupil y axis is inverted
                                 PupilData.AddGazeToEyeData(eyeDataKey, position);
                             }
                         break;
                     default:
-                        var position3D = Position(gazeDictionary[key], true);
+                        var position3D = PupilDataParser.Position(gazeDictionary[key], true);
                         position3D.y *= -1f;                                // Pupil y axis is inverted
                         PupilData.AddGazeToEyeData(key, position3D);
                         if (isRecording) AddToRecording(key, position3D);
@@ -174,51 +173,8 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         private static void CheckModeConsistency()
         {
-            var topic = StringFromDictionary(gazeDictionary, "topic");
+            var topic = PupilDataParser.StringFromDictionary(gazeDictionary, "topic");
             if (topic.StartsWith("gaze.2D") && CalibrationMode == Calibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
-        }
-        private static object[] position_o;
-        private static object IDo;
-        public static Vector3 ObjectToVector(object source)
-        {
-            position_o = source as object[];
-            var result = Vector3.zero;
-            if (position_o.Length != 2 && position_o.Length != 3) Debug.Log("Array length not supported");
-            else
-            {
-                result.x = (float)(double)position_o[0];
-                result.y = (float)(double)position_o[1];
-                if (position_o.Length == 3) result.z = (float)(double)position_o[2];
-            }
-            return result;
-        }
-        private static Vector3 Position(object position, bool applyScaling)
-        {
-            var result = ObjectToVector(position);
-            if (applyScaling) result /= PupilSettings.PupilUnitScalingFactor;
-            return result;
-        }
-        public static Vector3 VectorFromDictionary(Dictionary<string, object> source, string key)
-        {
-            return source.ContainsKey(key) ? Position(source[key], false) : Vector3.zero;
-        }
-        public static float FloatFromDictionary(Dictionary<string, object> source, string key)
-        {
-            object valueO;
-            source.TryGetValue(key, out valueO);
-            return (float)(double)valueO;
-        }
-        public static string StringFromDictionary(Dictionary<string, object> source, string key)
-        {
-            var result = "";
-            if (source.TryGetValue(key, out IDo))
-                result = IDo.ToString();
-            return result;
-        }
-        public static Dictionary<object, object> DictionaryFromDictionary(Dictionary<string, object> source, string key)
-        {
-            if (source.ContainsKey(key)) return source[key] as Dictionary<object, object>;
-            return null;
         }
 
         public static string TopicsForDictionary(Dictionary<string, object> dictionary)
@@ -267,7 +223,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             Debug.Log(" Succesfully connected to Pupil! ");
 
             StartEyeProcesses();
-            if (OnConnected != null) OnConnected();
+            OnConnected?.Invoke();
         }
         public static void Disconnect()
         {
@@ -336,7 +292,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             });
             _calibrationData.Clear();
         }
-
         public static void StopCalibration()
         {
             IsCalibrating = false;
@@ -370,7 +325,6 @@ namespace BrainVR.Eyetracking.PupilLabs
                 Debug.Log("No 'calibration failed' delegate set");
             }
         }
-
         private static List<Dictionary<string, object>> _calibrationData = new List<Dictionary<string, object>>();
         public static void AddCalibrationReferenceData()
         {
@@ -532,6 +486,10 @@ namespace BrainVR.Eyetracking.PupilLabs
                         }
                     }
                 });
+        }
+        public float? GetPupilTimestamp()
+        {
+            return _connection.GetPupilTimestamp();
         }
     }
 

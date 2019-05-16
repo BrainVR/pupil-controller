@@ -34,20 +34,32 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public void StartMonitoring()
         {
+            if (!IsConnected) return;
+            if (IsMonitoring) return;
+            Debug.Log("Starting monitoring");
             PupilController.SubscribeTo("pupil.");
+            PupilController.OnReceiveData += DataReceived;
             IsMonitoring = true;
         }
         public void StopMonitoring()
         {
+            if (!IsConnected) return;
+            if (!IsMonitoring) return;
+            Debug.Log("Stopping monitoring");
             PupilController.UnSubscribeFrom("pupil.");
             PupilController.OnReceiveData -= DataReceived;
             IsMonitoring = false;
+        }
+        public float? GetTimestamp()
+        {
+            return _controller.GetPupilTimestamp();
+
         }
         #endregion
         #region private functions
         private void DataReceived(string topic, Dictionary<string, object> dictionary, byte[] thirdframe)
         {
-            throw new System.NotImplementedException();
+            Debug.Log("Data received");
         }
         #endregion
     }
@@ -87,8 +99,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                 else manager.StartMonitoring();
                 manager.Settings.debug.printMessage = manager.IsMonitoring;
             }
-
-            
+            if (GUILayout.Button("Connect")) manager.Connect();
         }
     }
 
