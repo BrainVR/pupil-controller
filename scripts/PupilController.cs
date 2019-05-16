@@ -166,8 +166,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                         var position3D = Position(gazeDictionary[key], true);
                         position3D.y *= -1f;                                // Pupil y axis is inverted
                         PupilData.AddGazeToEyeData(key, position3D);
-                        if (isRecording)
-                            AddToRecording(key, position3D);
+                        if (isRecording) AddToRecording(key, position3D);
                         break;
                 }
             }
@@ -179,6 +178,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             if (topic.StartsWith("gaze.2D") && CalibrationMode == Calibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
         }
         private static object[] position_o;
+        private static object IDo;
         public static Vector3 ObjectToVector(object source)
         {
             position_o = source as object[];
@@ -188,16 +188,14 @@ namespace BrainVR.Eyetracking.PupilLabs
             {
                 result.x = (float)(double)position_o[0];
                 result.y = (float)(double)position_o[1];
-                if (position_o.Length == 3)
-                    result.z = (float)(double)position_o[2];
+                if (position_o.Length == 3) result.z = (float)(double)position_o[2];
             }
             return result;
         }
         private static Vector3 Position(object position, bool applyScaling)
         {
             var result = ObjectToVector(position);
-            if (applyScaling)
-                result /= PupilSettings.PupilUnitScalingFactor;
+            if (applyScaling) result /= PupilSettings.PupilUnitScalingFactor;
             return result;
         }
         public static Vector3 VectorFromDictionary(Dictionary<string, object> source, string key)
@@ -210,7 +208,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             source.TryGetValue(key, out valueO);
             return (float)(double)valueO;
         }
-        private static object IDo;
         public static string StringFromDictionary(Dictionary<string, object> source, string key)
         {
             var result = "";
