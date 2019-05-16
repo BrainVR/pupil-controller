@@ -202,8 +202,8 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public static IEnumerator Connect(bool retry = false, float retryDelay = 5f)
         {
-            Debug.Log("Waiting for 3 s to connect");
-            yield return new WaitForSeconds(3f);
+            //Debug.Log("Waiting for 3 s to connect");
+            //yield return new WaitForSeconds(3f);
             Debug.Log("Trying to connect");
             while (!IsConnected)
             {

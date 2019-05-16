@@ -53,7 +53,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         public float? GetTimestamp()
         {
             return _controller.GetPupilTimestamp();
-
         }
         #endregion
         #region private functions

@@ -16,6 +16,11 @@ public class TestingConnection : MonoBehaviour
     void Update()
     {
         //if (manager.IsConnected) Debug.Log(PupilData.gazePoint);
-        if (Input.GetKeyDown(KeyCode.H) & manager.IsConnected) Debug.Log(manager.GetTimestamp());
+        if (Input.GetKeyDown(KeyCode.H) & manager.IsConnected)
+        {
+            var pupilTime = manager.GetTimestamp();
+            var time = Time.timeSinceLevelLoad;
+            Debug.Log("Pupil time: " + pupilTime + ". Time of collection: " + time + ". Difference: " + (pupilTime-time));
+        }
     }
 }
