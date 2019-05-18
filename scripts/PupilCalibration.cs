@@ -113,7 +113,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             previousCalibrationDepth = -1;
             previousCalibrationPoint = -1;
 
-            if (!PupilMarker.TryToReset(Marker)) Marker = new PupilMarker("Calibraton Marker", Color.white);
+            if (!PupilCalibrationMarker.TryToReset(Marker)) Marker = new PupilCalibrationMarker("Calibraton Marker", Color.white);
             UpdateCalibrationPoint();
             Debug.Log("Starting Calibration");
         }

@@ -46,7 +46,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             set
             {
                 _dataProcessState = value;
-                PupilMarker.TryToSetActive(Calibration.Marker, _dataProcessState == EStatus.Calibration);
+                PupilCalibrationMarker.TryToSetActive(Calibration.Marker, _dataProcessState == EStatus.Calibration);
             }
         }
         private static EStatus previousState = EStatus.Idle;
