@@ -41,7 +41,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         public CustomGUIVariables customGUIVariables;
         public Camera currentCamera;
 #if !UNITY_WSA
-        public Recorder recorder;
+        public PupilRecorder recorder;
 #endif
         public List<GUIStyle> GUIStyles;
 
