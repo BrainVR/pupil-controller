@@ -59,7 +59,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public float? GetTimestamp()
         {
-            return _controller.GetPupilTimestamp();
+            return _controller?.GetPupilTimestamp();
         }
         #endregion
         #region private functions
@@ -106,8 +106,13 @@ namespace BrainVR.Eyetracking.PupilLabs
                 else _manager.StartMonitoring();
                 _manager.Settings.debug.printMessage = _manager.IsMonitoring;
             }
+            GUILayout.BeginHorizontal("box");
+            var time = _manager.GetTimestamp();
+            GUILayout.Label("Timestamp of the glasses is: ");
+            if (time != null) GUILayout.Label(time.ToString());
+            GUILayout.EndHorizontal();
             if (GUILayout.Button("Connect")) _manager.Connect();
-            if (GUILayout.Button("Connect")) _manager.Disconnect();
+            if (GUILayout.Button("Disconnect")) _manager.Disconnect();
         }
     }
 
