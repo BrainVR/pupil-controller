@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Threading;
+using BrainVR.Eyetracking.PupilLabs;
 
 #if !UNITY_WSA
 namespace FFmpegOut
@@ -26,16 +27,14 @@ namespace FFmpegOut
 
         public FFmpegPipe(string name, int width, int height, int framerate, Codec codec)
         {
-			PupilGazeTracker pupilTracker = PupilGazeTracker.Instance;
 
-			string path = PupilSettings.Instance.recorder.GetRecordingPath ();
+			string path = PupilManager.Instance.Settings.recorder.GetRecordingPath ();
 
 			Thread.Sleep (200);//Waiting for Pupil Service to create the incremented folder
 
 			path += "/" + GetLastIncrement (path);
 
-			if (!Directory.Exists (path))
-				Directory.CreateDirectory (path);
+			if (!Directory.Exists (path)) Directory.CreateDirectory (path);
 			
 			Filename = "\"" + path + "/" + name + GetSuffix (codec) + "\"";
             

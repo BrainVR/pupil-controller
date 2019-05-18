@@ -126,7 +126,7 @@ namespace BrainVR.Eyetracking.PupilLabs
 
             //Adding the calibration reference data to the list that wil;l be passed on, once the required sample amount is met.
             if (_currentCalibrationSamples > samplesToIgnoreForEyeMovement)
-                PupilTools.AddCalibrationPointReferencePosition(currentCalibrationPointPosition, t);
+                PupilController.AddCalibrationPointReferencePosition(currentCalibrationPointPosition, t);
 
             if (PupilManager.Instance.Settings.debug.printSampling)
                 Debug.Log("Point: " + _currentCalibrationPoint + ", " + "Sampling at : " +
@@ -146,7 +146,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             //Send the current relevant calibration data for the current calibration point. _CalibrationPoints returns _calibrationData as an array of a Dictionary<string,object>.
             PupilController.AddCalibrationReferenceData();
 
-            if (_currentCalibrationPoint >= currentCalibrationType.points) PupilTools.StopCalibration();
+            if (_currentCalibrationPoint >= currentCalibrationType.points) PupilController.StopCalibration();
         }
     }
 }

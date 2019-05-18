@@ -266,8 +266,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public static void StartCalibration()
         {
-            if (IsGazing) PupilGazeTracker.Instance.StopVisualizingGaze();
-
             if (OnCalibrationStarted != null) OnCalibrationStarted();
             else Debug.Log("No 'calibration started' delegate set");
             Calibration.InitializeCalibration();

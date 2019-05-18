@@ -37,14 +37,12 @@ namespace BrainVR.Eyetracking.PupilLabs
             c.allowHDR = false;
             c.allowMSAA = false;
             c.fieldOfView = Camera.main.fieldOfView;
-            PupilTools.RepaintGUI();
         }
 
         public static void Stop()
         {
             RecorderGO.GetComponent<FFmpegOut.CameraCapture>().Stop();
             Object.Destroy(RecorderGO);
-            PupilTools.RepaintGUI();
         }
 
         public string GetRecordingPath()

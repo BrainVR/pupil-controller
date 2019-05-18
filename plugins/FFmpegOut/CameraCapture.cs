@@ -4,7 +4,9 @@ using System.Text;
 using System.Threading;
 using System.Collections.Generic;
 using System.Collections;
+using BrainVR.Eyetracking.PupilLabs;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 #if !UNITY_WSA
 namespace FFmpegOut
@@ -26,7 +28,7 @@ namespace FFmpegOut
 
 		[SerializeField] public Shader _shader;
 
-		enum RecorderState {RECORDING,PROCESSING,STOPPING,IDLE}
+		enum RecorderState {RECORDING,PROCESSING,STOPPING, IDLE}
 		RecorderState _recorderState = RecorderState.RECORDING;
 
 		Material _material;
@@ -52,12 +54,10 @@ namespace FFmpegOut
 		public Shader sh;
 
 		#region MonoBehavior functions
-
 		void OnValidate()
 		{
 			_recordLength = Mathf.Max(_recordLength, 0.01f);
 		}
-
 		void OnEnable()
 		{
 			if (!FFmpegConfig.CheckAvailable)
@@ -70,51 +70,34 @@ namespace FFmpegOut
 				enabled = false;
 			}
 		}
-
-//        void OnDisable()
-//        {
-//			if (_pipe != null) Stop ();
-//			
-//        }
-
 		void OnDestroy()
 		{
 			if (_pipe != null) ClosePipe ();
 		}
-
 		void Start()
 		{
 			_material = new Material (Shader.Find ("Hidden/FFmpegOut/CameraCapture"));
-
-			PupilTools.StartRecording ();
+			PupilController.StartRecording();
 		}
-
-		void Update()
+        void Update()
 		{
 			_elapsed += Time.deltaTime;
 
-			if (_elapsed < PupilSettings.Instance.recorder.recordingLength)
+			if (_elapsed < PupilManager.Instance.Settings.recorder.recordingLength)
 			{
 				if (_pipe == null) OpenPipe();
 			}
 			else
 			{
-				if (_pipe != null && PupilSettings.Instance.recorder.isFixedRecordingLength && _recorderState == RecorderState.RECORDING) Stop ();
+				if (_pipe != null && PupilManager.Instance.Settings.recorder.isFixedRecordingLength && _recorderState == RecorderState.RECORDING) Stop ();
 			}
-
-			if (_recorderState == RecorderState.STOPPING) {
-				
-				PupilTools.RepaintGUI ();
-				GameObject.Destroy (this.gameObject);
-
-			}
-
+			if (_recorderState == RecorderState.STOPPING) GameObject.Destroy (this.gameObject);
 		}
 
 		public void Stop()
 		{
-			Recorder.isRecording = false;
-			PupilTools.StopRecording ();
+			PupilRecorder.isRecording = false;
+			PupilController.StopRecording ();
 			_recorderState = RecorderState.PROCESSING;
 		}
 
@@ -124,12 +107,9 @@ namespace FFmpegOut
 			{
 				var tempRT = RenderTexture.GetTemporary(source.width, source.height);
 
-				if (_material != null) {
-					Graphics.Blit (source, tempRT, _material, 0);
-				} else {
-					Debug.LogWarning ("Material for the recorder is null, fix this!");
-				}
-
+				if (_material != null) Graphics.Blit (source, tempRT, _material, 0);
+				else Debug.LogWarning ("Material for the recorder is null, fix this!");
+				
 				var tempTex = new Texture2D(source.width, source.height, TextureFormat.RGB24, false);
 				tempTex.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
 				tempTex.Apply();
@@ -141,14 +121,10 @@ namespace FFmpegOut
 				Destroy(tempTex);
 				RenderTexture.ReleaseTemporary(tempRT);
 			}
-
 			Graphics.Blit(source, destination);
 		}
-
 		#endregion
-
 		#region Private methods
-
 		void OpenPipe()
 		{
 			if (_pipe != null) return;
@@ -156,8 +132,8 @@ namespace FFmpegOut
 			timeStampList = new List<byte> ();
 
 			var camera = GetComponent<Camera>();
-			var width = PupilSettings.Instance.recorder.resolutions [(int)PupilSettings.Instance.recorder.resolution] [0];
-			var height = PupilSettings.Instance.recorder.resolutions [(int)PupilSettings.Instance.recorder.resolution] [1];
+			var width = PupilManager.Instance.Settings.recorder.resolutions [(int)PupilManager.Instance.Settings.recorder.resolution] [0];
+			var height = PupilManager.Instance.Settings.recorder.resolutions [(int)PupilManager.Instance.Settings.recorder.resolution] [1];
 			// Apply the screen resolution settings.
 			if (_setResolution)
 			{
@@ -173,14 +149,11 @@ namespace FFmpegOut
 
 			// Open an output stream.
 
-			var name = "Unity_" + PupilSettings.Instance.currentCamera.name;
-			_pipe = new FFmpegPipe(name, width, height, _frameRate, PupilSettings.Instance.recorder.codec);
+			var cameraName = "Unity_" + PupilManager.Instance.Settings.currentCamera.name;
+			_pipe = new FFmpegPipe(cameraName, width, height, _frameRate, PupilManager.Instance.Settings.recorder.codec);
 
 			// Change the application frame rate.
-			if (Time.captureFramerate == 0)
-			{
-				Time.captureFramerate = _frameRate;
-			}
+			if (Time.captureFramerate == 0) Time.captureFramerate = _frameRate;
 			else if (Time.captureFramerate != _frameRate)
 			{
 				Debug.LogWarning(
@@ -189,15 +162,12 @@ namespace FFmpegOut
 					"frame rate when capturing multiple cameras."
 				);
 			}
-
 			Debug.Log("Capture started (" + _pipe.Filename + ")");
 		}
 		
 		void ClosePipe()
 		{
-			
 			var camera = GetComponent<Camera>();
-
 			// Destroy the blitter object.
 			if (_tempBlitter != null)
 			{
@@ -212,33 +182,24 @@ namespace FFmpegOut
 				RenderTexture.ReleaseTemporary(_tempTarget);
 				_tempTarget = null;
 			}
-
 			// Close the output stream.
-			if (_pipe != null)
-			{
-				Debug.Log ("Capture ended (" + _pipe.Filename + ").");
+		    if (_pipe == null) return;
+		    Debug.Log ("Capture ended (" + _pipe.Filename + ").");
+		    // Write pupil timestamps to a file
+		    var timeStampFileName = "Unity_" + PupilManager.Instance.Settings.currentCamera.name;
+		    var timeStampByteArray = timeStampList.ToArray();
+		    File.WriteAllBytes(_pipe.FilePath + "/" + timeStampFileName + ".time", timeStampByteArray);
 
-				// Write pupil timestamps to a file
-				string timeStampFileName = "Unity_" + PupilSettings.Instance.currentCamera.name;
-				byte[] timeStampByteArray = timeStampList.ToArray ();
-				File.WriteAllBytes(_pipe.FilePath + "/" + timeStampFileName + ".time", timeStampByteArray);
-
-				PupilTools.SaveRecording (_pipe.FilePath);
-
-				_pipe.Close();
-
-				if (!string.IsNullOrEmpty(_pipe.Error))
-				{
-					Debug.LogWarning(
-						"ffmpeg returned with a warning or an error message. " +
-						"See the following lines for details:\n" + _pipe.Error
-					);
-				}
-
-				_pipe = null;
-			}
-
-
+		    PupilController.SaveRecording (_pipe.FilePath);
+		    _pipe.Close();
+		    if (!string.IsNullOrEmpty(_pipe.Error))
+		    {
+		        Debug.LogWarning(
+		            "ffmpeg returned with a warning or an error message. " +
+		            "See the following lines for details:\n" + _pipe.Error
+		        );
+		    }
+		    _pipe = null;
 		}
 		#endregion
 	}

@@ -60,7 +60,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             Position.x = newPosition.x;
             Position.y = newPosition.y;
-            Position.z = PupilTools.CalibrationType.vectorDepthRadius[0].x;
+            Position.z = PupilController.CalibrationType.vectorDepthRadius[0].x;
             gameObject.transform.position = camera.ViewportToWorldPoint(Position);
             UpdateOrientation();
         }
@@ -74,13 +74,13 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public void UpdatePosition(float[] newPosition)
         {
-            if (PupilTools.CalibrationMode == Calibration.Mode._2D)
+            if (PupilController.CalibrationMode == PupilCalibration.Mode._2D)
             {
                 if (newPosition.Length == 2)
                 {
                     Position.x = newPosition[0];
                     Position.y = newPosition[1];
-                    Position.z = PupilTools.CalibrationType.vectorDepthRadius[0].x;
+                    Position.z = PupilController.CalibrationType.vectorDepthRadius[0].x;
                     gameObject.transform.position = camera.ViewportToWorldPoint(Position);
                 }
                 else
@@ -88,7 +88,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                     Debug.Log("Length of new position array does not match 2D mode");
                 }
             }
-            else if (PupilTools.CalibrationMode == Calibration.Mode._3D)
+            else if (PupilController.CalibrationMode == PupilCalibration.Mode._3D)
             {
                 if (newPosition.Length == 3)
                 {

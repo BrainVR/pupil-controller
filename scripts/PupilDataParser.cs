@@ -19,21 +19,21 @@ namespace BrainVR.Eyetracking.PupilLabs
                     case "topic":
                     case "method":
                     case "id":
-                        var textForKey = PupilTools.StringFromDictionary(dictionary, item.Key);
+                        var textForKey = StringFromDictionary(dictionary, item.Key);
                         // Do stuff
                         break;
                     case "confidence":
                     case "timestamp":
                     case "diameter":
-                        var valueForKey = PupilTools.FloatFromDictionary(dictionary, item.Key);
+                        var valueForKey = FloatFromDictionary(dictionary, item.Key);
                         // Do stuff
                         break;
                     case "norm_pos":
-                        var positionForKey = PupilTools.VectorFromDictionary(dictionary, item.Key);
+                        var positionForKey = VectorFromDictionary(dictionary, item.Key);
                         // Do stuff
                         break;
                     case "ellipse":
-                        var dictionaryForKey = PupilTools.DictionaryFromDictionary(dictionary, item.Key);
+                        var dictionaryForKey = DictionaryFromDictionary(dictionary, item.Key);
                         foreach (var pupilEllipse in dictionaryForKey)
                         {
                             switch (pupilEllipse.Key.ToString())
@@ -44,7 +44,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                                     break;
                                 case "center":
                                 case "axes":
-                                    var vector = PupilTools.ObjectToVector(pupilEllipse.Value);
+                                    var vector = ObjectToVector(pupilEllipse.Value);
                                     // Do stuff
                                     break;
                                 default:
