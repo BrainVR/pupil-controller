@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace BrainVR.Eyetracking.PupilLabs
 {
-    [CreateAssetMenu(fileName = "PupilSettings")]
+    [CreateAssetMenu(menuName = "BrainVR/Eyetracking/Pupil/Settings", fileName = "PupilSettings")]
     public class PupilSettings : ScriptableObject
     {
         [Serializable]

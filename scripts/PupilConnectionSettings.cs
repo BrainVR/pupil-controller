@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-[CreateAssetMenu(menuName="Pupil/ConnectionSettings", fileName = "PupilConnectionSettings")]
+[CreateAssetMenu(menuName= "BrainVR/Eyetracking/Pupil/ConnectionSettings", fileName = "PupilConnectionSettings")]
 public class PupilConnectionSettings : ScriptableObject
 {
     public string IP = "127.0.0.1";
