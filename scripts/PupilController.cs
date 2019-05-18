@@ -13,6 +13,13 @@ namespace BrainVR.Eyetracking.PupilLabs
         private static PupilSettings _settings {get {return PupilManager.Instance.Settings; }}
         private static PupilConnection _connection = new PupilConnection(PupilManager.Instance.ConnectionSettings);
 
+        public PupilController(PupilSettings pupilSettings, PupilConnectionSettings connectionSettings)
+        {
+            //TODO when i redo this to non static class
+            //_settings = pupilSettings;
+            //_connection = new PupilConnection(connectionSettings);
+        }
+
         #region Delegates
         //InspectorGUI repaint
         public delegate void GUIRepaintAction();

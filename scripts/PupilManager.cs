@@ -19,19 +19,25 @@ namespace BrainVR.Eyetracking.PupilLabs
         public bool IsConnected {get { return PupilController.IsConnected; }}
         public bool IsMonitoring = false;
         #region MonoBehaviour
-        void Awake()
-        {
-            _controller = new PupilController();
-        }
         void OnApplicationQuit()
         {
-            if (IsConnected) PupilController.Disconnect();
+            Disconnect();
         }
         #endregion
         #region Public API1
+        public void Setup()
+        {
+            if (_controller == null) _controller = new PupilController(Settings, ConnectionSettings);
+        }
         public void Connect()
         {
+            Setup();
             StartCoroutine(PupilController.Connect(retry: true, retryDelay: 5f));
+        }
+        public void Disconnect()
+        {
+            if (IsMonitoring) StopMonitoring();
+            if (IsConnected) PupilController.Disconnect();
         }
         public void StartMonitoring()
         {
@@ -68,16 +74,16 @@ namespace BrainVR.Eyetracking.PupilLabs
     [CustomEditor(typeof(PupilManager))]
     public class CustomPupilManagerInspector : Editor
     {
-        PupilManager manager;
+        PupilManager _manager;
 
         void OnEnable()
         {
-            manager = (PupilManager)target;
+            _manager = (PupilManager)target;
         }
         public override void OnInspectorGUI()
         {
             //////////////////////////////////////STATUS FIELD//////////////////////////////////////
-            if (manager.IsConnected)
+            if (_manager.IsConnected)
             {
                 GUI.color = Color.green;
                 //TODO needs to make the connection settings separate
@@ -91,16 +97,17 @@ namespace BrainVR.Eyetracking.PupilLabs
                 //if (PupilTools.Connection.isLocal) GUILayout.Label("localHost ( Not Connected )", manager.Settings.GUIStyles[1]);
                 //else GUILayout.Label("remote " + PupilTools.Connection.IP + " ( Not Connected )", manager.Settings.GUIStyles[1]);
             }
-            manager.Settings = EditorGUILayout.ObjectField(manager.Settings, typeof(PupilSettings), false) as PupilSettings;
-            manager.ConnectionSettings = EditorGUILayout.ObjectField(manager.ConnectionSettings, typeof(PupilConnectionSettings), false) as PupilConnectionSettings;
-            var text = manager.IsMonitoring ? "Stop debug monitoring" : "Start debug monitoring";
+            _manager.Settings = EditorGUILayout.ObjectField(_manager.Settings, typeof(PupilSettings), false) as PupilSettings;
+            _manager.ConnectionSettings = EditorGUILayout.ObjectField(_manager.ConnectionSettings, typeof(PupilConnectionSettings), false) as PupilConnectionSettings;
+            var text = _manager.IsMonitoring ? "Stop debug monitoring" : "Start debug monitoring";
             if (GUILayout.Button(text))
             {
-                if (manager.IsMonitoring) manager.StopMonitoring();
-                else manager.StartMonitoring();
-                manager.Settings.debug.printMessage = manager.IsMonitoring;
+                if (_manager.IsMonitoring) _manager.StopMonitoring();
+                else _manager.StartMonitoring();
+                _manager.Settings.debug.printMessage = _manager.IsMonitoring;
             }
-            if (GUILayout.Button("Connect")) manager.Connect();
+            if (GUILayout.Button("Connect")) _manager.Connect();
+            if (GUILayout.Button("Connect")) _manager.Disconnect();
         }
     }
 
