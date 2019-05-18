@@ -95,7 +95,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             Marker.SetScale(type.markerScale);
         }
 
-        public PupilMarker Marker;
+        public PupilCalibrationMarker Marker;
         int currentCalibrationPoint;
         int previousCalibrationPoint;
         int currentCalibrationSamples;
