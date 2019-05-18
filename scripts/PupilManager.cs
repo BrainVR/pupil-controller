@@ -36,8 +36,10 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public void Disconnect()
         {
+            if (!IsConnected) return;
             if (IsMonitoring) StopMonitoring();
-            if (IsConnected) PupilController.Disconnect();
+            PupilController.Disconnect();
+            _controller = null;
         }
         public void StartMonitoring()
         {
@@ -115,6 +117,5 @@ namespace BrainVR.Eyetracking.PupilLabs
             if (GUILayout.Button("Disconnect")) _manager.Disconnect();
         }
     }
-
 #endif
 }

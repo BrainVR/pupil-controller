@@ -37,7 +37,7 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public DebugVars debug;
 
-        public Calibration calibration;
+        public PupilCalibration calibration;
         public CustomGUIVariables customGUIVariables;
         public Camera currentCamera;
 #if !UNITY_WSA

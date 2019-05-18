@@ -13,20 +13,23 @@ namespace BrainVR.Eyetracking.PupilLabs
     {
         public PupilConnectionSettings Settings;
         public bool IsConnected;
+        public string PupilVersion;
+        public List<int> PupilVersionNumbers;
 
         private Dictionary<string, SubscriberSocket> _subscriptionSocketForTopic;
         private Dictionary<string, SubscriberSocket> SubscriptionSocketForTopic => _subscriptionSocketForTopic ?? (_subscriptionSocketForTopic =
                                                                                        new Dictionary<string, SubscriberSocket>());
         public RequestSocket RequestSocket;
-        private bool _contextExists = false;
+        private bool _contextExists;
+        private MemoryStream _mStream; //used by subscription sockets
 
         private readonly TimeSpan _timeout = new TimeSpan(0, 0, 1); //1sec
 
         public PupilConnection(PupilConnectionSettings settings)
         {
-            this.Settings = settings;
+            Settings = settings;
         }
-
+        #region connection setup
         public void InitializeRequestSocket()
         {
             Settings.IPHeader = ">tcp://" + Settings.IP + ":";
@@ -42,37 +45,11 @@ namespace BrainVR.Eyetracking.PupilLabs
             RequestSocket.SendFrame("SUB_PORT");
             IsConnected = RequestSocket.TryReceiveFrameString(_timeout, out Settings.Subport);
             if (!IsConnected) return;
-            CheckPupilVersion();
-            SetPupilTimestamp(Time.realtimeSinceStartup);
-        }
-
-        public string PupilVersion;
-        public List<int> PupilVersionNumbers;
-        public void CheckPupilVersion()
-        {
-            RequestSocket.SendFrame("v");
-            if (!RequestSocket.TryReceiveFrameString(_timeout, out PupilVersion)) return;
-            if (PupilVersion == null || PupilVersion == "Unknown command.") return;
-            Debug.Log(PupilVersion);
-            var split = PupilVersion.Split('.');
-            PupilVersionNumbers = new List<int>();
-            foreach (var item in split)
-            {
-                if (int.TryParse(item, out int number)) PupilVersionNumbers.Add(number);
-            }
-            Is3DCalibrationSupported();
-        }
-        public bool Is3DCalibrationSupported()
-        {
-            if ((PupilVersionNumbers.Count > 0) & (PupilVersionNumbers[0] >= 1)) return true;
-            Debug.Log("Pupil version below 1 detected. V1 is required for 3D calibration");
-            PupilController.CalibrationMode = Calibration.Mode._2D;
-            return false;
+            GetAndSavePupilVersion();
         }
         public void CloseSockets()
         {
-            if (RequestSocket != null) RequestSocket.Close();
-
+            RequestSocket?.Close();
             foreach (var socketKey in SubscriptionSocketForTopic.Keys)
             {
                 CloseSubscriptionSocket(socketKey);
@@ -81,8 +58,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             TerminateContext();
             IsConnected = false;
         }
-
-        private MemoryStream _mStream;
+        private List<string> subscriptionSocketToBeClosed = new List<string>();
         public void InitializeSubscriptionSocket(string topic)
         {
             if (SubscriptionSocketForTopic.ContainsKey(topic)) return;
@@ -109,7 +85,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                     if (PupilManager.Instance.Settings.debug.printMessageType) Debug.Log(msgType);
                     if (PupilManager.Instance.Settings.debug.printMessage) Debug.Log(MessagePackSerializer.ToJson(m[1].ToByteArray()));
                     if (PupilController.ReceiveDataIsSet) PupilController.ReceiveData(msgType, MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream), thirdFrame);
-                    
+
                     switch (msgType)
                     {
                         case "notify.calibration.successful":
@@ -166,34 +142,55 @@ namespace BrainVR.Eyetracking.PupilLabs
                 subscriptionSocketToBeClosed.Remove(toBeClosed);
             }
         }
-        private List<string> subscriptionSocketToBeClosed = new List<string>();
         public void CloseSubscriptionSocket(string topic)
         {
             if (subscriptionSocketToBeClosed == null) subscriptionSocketToBeClosed = new List<string>();
             if (!subscriptionSocketToBeClosed.Contains(topic)) subscriptionSocketToBeClosed.Add(topic);
         }
-        public bool sendRequestMessage(Dictionary<string, object> data)
+        public bool SendRequestMessage(Dictionary<string, object> data)
         {
             if (RequestSocket == null || !IsConnected) return false;
             var m = new NetMQMessage();
-
             m.Append("notify." + data["subject"]);
-            m.Append(MessagePackSerializer.Serialize<Dictionary<string, object>>(data));
-
+            m.Append(MessagePackSerializer.Serialize(data));
             RequestSocket.SendMultipartMessage(m);
-            return receiveRequestResponse();
+            return ReceiveRequestResponse();
         }
-        public bool receiveRequestResponse()
+        public bool ReceiveRequestResponse()
         {
             // we are currently not doing anything with this
             var m = new NetMQMessage();
             return RequestSocket.TryReceiveMultipartMessage(_timeout, ref m);
         }
-        public void SetPupilTimestamp(float time)
+        public void TerminateContext()
         {
-            if (RequestSocket == null) return;
-            RequestSocket.SendFrame("T " + time.ToString("0.00000000"));
-            receiveRequestResponse();
+            if (!_contextExists) return;
+            NetMQConfig.ContextTerminate();
+            _contextExists = false;
+        }
+        #endregion
+        #region Public Getters
+        public void GetAndSavePupilVersion()
+        {
+            RequestSocket.SendFrame("v");
+            if (!RequestSocket.TryReceiveFrameString(_timeout, out PupilVersion)) return;
+            if (PupilVersion == null || PupilVersion == "Unknown command.") return;
+            Debug.Log(PupilVersion);
+            var split = PupilVersion.Split('.');
+            PupilVersionNumbers = new List<int>();
+            foreach (var item in split)
+            {
+                if (int.TryParse(item, out int number)) PupilVersionNumbers.Add(number);
+            }
+            Is3DCalibrationSupported();
+        }
+        public bool Is3DCalibrationSupported()
+        {
+            //validate that version numbers have been set
+            if ((PupilVersionNumbers.Count > 0) & (PupilVersionNumbers[0] >= 1)) return true;
+            Debug.Log("Pupil version below 1 detected. V1 is required for 3D calibration");
+            PupilController.CalibrationMode = PupilCalibration.Mode._2D;
+            return false;
         }
         public float? GetPupilTimestamp()
         {
@@ -210,11 +207,14 @@ namespace BrainVR.Eyetracking.PupilLabs
             return null;
 
         }
-        public void TerminateContext()
+        #endregion
+        #region public setters
+        public void SetPupilTimestamp(float time)
         {
-            if (!_contextExists) return;
-            NetMQConfig.ContextTerminate();
-            _contextExists = false;
+            if (RequestSocket == null) return;
+            RequestSocket.SendFrame("T " + time.ToString("0.00000000"));
+            ReceiveRequestResponse();
         }
+        #endregion
     }
 }

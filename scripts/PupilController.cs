@@ -172,7 +172,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         private static void CheckModeConsistency()
         {
             var topic = PupilDataParser.StringFromDictionary(gazeDictionary, "topic");
-            if (topic.StartsWith("gaze.2D") && CalibrationMode == Calibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
+            if (topic.StartsWith("gaze.2D") && CalibrationMode == PupilCalibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
         }
         public static string TopicsForDictionary(Dictionary<string, object> dictionary)
         {
@@ -236,29 +236,27 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public static bool Send(Dictionary<string, object> dictionary)
         {
-            return _connection.sendRequestMessage(dictionary);
+            return _connection.SendRequestMessage(dictionary);
         }
         #endregion
         #region Calibration
-        public static Calibration Calibration
+        public static PupilCalibration Calibration
         {
             get { return _settings.calibration; }
         }
-        private static Calibration.Mode _calibrationMode = Calibration.Mode._2D;
-        public static Calibration.Mode CalibrationMode
+        private static PupilCalibration.Mode _calibrationMode = PupilCalibration.Mode._2D;
+        public static PupilCalibration.Mode CalibrationMode
         {
             get { return _calibrationMode; }
             set
             {
-                if (IsConnected && !_connection.Is3DCalibrationSupported())
-                    value = Calibration.Mode._2D;
-
+                if (IsConnected && !_connection.Is3DCalibrationSupported()) value = PupilCalibration.Mode._2D;
                 if (_calibrationMode == value) return;
                 _calibrationMode = value;
                 if (IsConnected) SetDetectionMode();
             }
         }
-        public static Calibration.Type CalibrationType
+        public static PupilCalibration.Type CalibrationType
         {
             get { return Calibration.currentCalibrationType; }
         }
@@ -361,7 +359,7 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public static void AddCalibrationPointReferencePosition(float[] position, float timestamp)
         {
-            if (CalibrationMode == Calibration.Mode._3D)
+            if (CalibrationMode == PupilCalibration.Mode._3D)
             {
                 for (var i = 0; i < position.Length; i++)
                     position[i] *= PupilSettings.PupilUnitScalingFactor;
