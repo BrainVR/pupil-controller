@@ -74,7 +74,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             {
                 case Mode._3D:
                     currentCalibrationPointPosition = new[]
-                        {type.centerPoint.x, type.centerPoint.y, type.vectorDepthRadius[currentCalibrationDepth].x};
+                        {type.centerPoint.x, type.centerPoint.y, type.vectorDepthRadius[_currentCalibrationDepth].x};
                     offset = 0.25f * Math.PI;
                     break;
                 default:
@@ -82,13 +82,13 @@ namespace BrainVR.Eyetracking.PupilLabs
                     offset = 0f;
                     break;
             }
-            radius = type.vectorDepthRadius[currentCalibrationDepth].y;
-            if (currentCalibrationPoint > 0 && currentCalibrationPoint < type.points)
+            radius = type.vectorDepthRadius[_currentCalibrationDepth].y;
+            if (_currentCalibrationPoint > 0 && _currentCalibrationPoint < type.points)
             {
                 currentCalibrationPointPosition[0] +=
-                    radius * (float) Math.Cos(2f * Math.PI * (float) (currentCalibrationPoint - 1) / (type.points - 1f) + offset);
+                    radius * (float) Math.Cos(2f * Math.PI * (float) (_currentCalibrationPoint - 1) / (type.points - 1f) + offset);
                 currentCalibrationPointPosition[1] +=
-                    radius * (float) Math.Sin(2f * Math.PI * (float) (currentCalibrationPoint - 1) / (type.points - 1f) + offset);
+                    radius * (float) Math.Sin(2f * Math.PI * (float) (_currentCalibrationPoint - 1) / (type.points - 1f) + offset);
             }
             if (PupilController.CalibrationMode == Mode._3D) currentCalibrationPointPosition[1] /= PupilManager.Instance.Settings.currentCamera.aspect;
             Marker.UpdatePosition(currentCalibrationPointPosition);
@@ -96,64 +96,57 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
 
         public PupilCalibrationMarker Marker;
-        int currentCalibrationPoint;
-        int previousCalibrationPoint;
-        int currentCalibrationSamples;
-        int currentCalibrationDepth;
-        int previousCalibrationDepth;
-        float[] currentCalibrationPointPosition;
+        private int _currentCalibrationPoint;
+        private int _previousCalibrationPoint;
+        private int _currentCalibrationSamples;
+        private int _currentCalibrationDepth;
+        private int _previousCalibrationDepth;
+        private float[] currentCalibrationPointPosition;
 
         public void InitializeCalibration()
         {
             Debug.Log("Initializing Calibration");
-
-            currentCalibrationPoint = 0;
-            currentCalibrationSamples = 0;
-            currentCalibrationDepth = 0;
-            previousCalibrationDepth = -1;
-            previousCalibrationPoint = -1;
-
+            _currentCalibrationPoint = 0;
+            _currentCalibrationSamples = 0;
+            _currentCalibrationDepth = 0;
+            _previousCalibrationDepth = -1;
+            _previousCalibrationPoint = -1;
             if (!PupilCalibrationMarker.TryToReset(Marker)) Marker = new PupilCalibrationMarker("Calibraton Marker", Color.white);
             UpdateCalibrationPoint();
             Debug.Log("Starting Calibration");
         }
-
-        static float lastTimeStamp = 0;
-        static float timeBetweenCalibrationPoints = 0.02f; // was 0.1, 1000/60 ms wait in old version
-
+        static float _lastTimeStamp = 0;
+        static readonly float TimeBetweenCalibrationPoints = 0.02f; // was 0.1, 1000/60 ms wait in old version
         public void UpdateCalibration()
         {
             var t = Time.realtimeSinceStartup;
-
-            if (!(t - lastTimeStamp > timeBetweenCalibrationPoints)) return;
-            lastTimeStamp = t;
-
-            UpdateCalibrationPoint(); // .currentCalibrationType.calibPoints [currentCalibrationPoint];
-            //			print ("its okay to go on");
+            if (!(t - _lastTimeStamp > TimeBetweenCalibrationPoints)) return;
+            _lastTimeStamp = t;
+            UpdateCalibrationPoint(); 
 
             //Adding the calibration reference data to the list that wil;l be passed on, once the required sample amount is met.
-            if (currentCalibrationSamples > samplesToIgnoreForEyeMovement)
+            if (_currentCalibrationSamples > samplesToIgnoreForEyeMovement)
                 PupilTools.AddCalibrationPointReferencePosition(currentCalibrationPointPosition, t);
 
             if (PupilManager.Instance.Settings.debug.printSampling)
-                Debug.Log("Point: " + currentCalibrationPoint + ", " + "Sampling at : " +
-                          currentCalibrationSamples + ". On the position : " + currentCalibrationPointPosition[0] +
+                Debug.Log("Point: " + _currentCalibrationPoint + ", " + "Sampling at : " +
+                          _currentCalibrationSamples + ". On the position : " + currentCalibrationPointPosition[0] +
                           " | " + currentCalibrationPointPosition[1]);
 
-            currentCalibrationSamples++; //Increment the current calibration sample. (Default sample amount per calibration point is 120)
+            _currentCalibrationSamples++; //Increment the current calibration sample. (Default sample amount per calibration point is 120)
 
-            if (currentCalibrationSamples < currentCalibrationType.samplesPerDepth) return;
-            currentCalibrationSamples = 0;
-            currentCalibrationDepth++;
+            if (_currentCalibrationSamples < currentCalibrationType.samplesPerDepth) return;
+            _currentCalibrationSamples = 0;
+            _currentCalibrationDepth++;
 
-            if (currentCalibrationDepth < currentCalibrationType.vectorDepthRadius.Length) return;
-            currentCalibrationDepth = 0;
-            currentCalibrationPoint++;
+            if (_currentCalibrationDepth < currentCalibrationType.vectorDepthRadius.Length) return;
+            _currentCalibrationDepth = 0;
+            _currentCalibrationPoint++;
 
             //Send the current relevant calibration data for the current calibration point. _CalibrationPoints returns _calibrationData as an array of a Dictionary<string,object>.
-            PupilTools.AddCalibrationReferenceData();
+            PupilController.AddCalibrationReferenceData();
 
-            if (currentCalibrationPoint >= currentCalibrationType.points) PupilTools.StopCalibration();
+            if (_currentCalibrationPoint >= currentCalibrationType.points) PupilTools.StopCalibration();
         }
     }
 }

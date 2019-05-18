@@ -58,7 +58,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             TerminateContext();
             IsConnected = false;
         }
-        private List<string> subscriptionSocketToBeClosed = new List<string>();
+        private List<string> _subscriptionSocketToBeClosed = new List<string>();
         public void InitializeSubscriptionSocket(string topic)
         {
             if (SubscriptionSocketForTopic.ContainsKey(topic)) return;
@@ -126,26 +126,38 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             var keys = new string[SubscriptionSocketForTopic.Count];
             SubscriptionSocketForTopic.Keys.CopyTo(keys, 0);
+            //polling all sockets for information
+            //TODO weird phrasing :/
             foreach (var t in keys)
             {
                 if (SubscriptionSocketForTopic[t].HasIn) SubscriptionSocketForTopic[t].Poll();
             }
-            for (var i = subscriptionSocketToBeClosed.Count - 1; i >= 0; i--)
+            //Closing of sockets lined up to be closed
+            for (var i = _subscriptionSocketToBeClosed.Count - 1; i >= 0; i--)
             {
-                var toBeClosed = subscriptionSocketToBeClosed[i];
+                var toBeClosed = _subscriptionSocketToBeClosed[i];
                 if (SubscriptionSocketForTopic.ContainsKey(toBeClosed))
                 {
                     SubscriptionSocketForTopic[toBeClosed].Close();
                     SubscriptionSocketForTopic.Remove(toBeClosed);
                 }
-                subscriptionSocketToBeClosed.Remove(toBeClosed);
+                _subscriptionSocketToBeClosed.Remove(toBeClosed);
             }
         }
+        /// <summary>
+        /// Adds string to the list of sockets to be closed. 
+        /// </summary>
+        /// <param name="topic"></param>
         public void CloseSubscriptionSocket(string topic)
         {
-            if (subscriptionSocketToBeClosed == null) subscriptionSocketToBeClosed = new List<string>();
-            if (!subscriptionSocketToBeClosed.Contains(topic)) subscriptionSocketToBeClosed.Add(topic);
+            if (_subscriptionSocketToBeClosed == null) _subscriptionSocketToBeClosed = new List<string>();
+            if (!_subscriptionSocketToBeClosed.Contains(topic)) _subscriptionSocketToBeClosed.Add(topic);
         }
+        /// <summary>
+        /// Sends Data of type dicrionary<string, object> and returns ReceiveRequestResponse
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
         public bool SendRequestMessage(Dictionary<string, object> data)
         {
             if (RequestSocket == null || !IsConnected) return false;
@@ -153,6 +165,13 @@ namespace BrainVR.Eyetracking.PupilLabs
             m.Append("notify." + data["subject"]);
             m.Append(MessagePackSerializer.Serialize(data));
             RequestSocket.SendMultipartMessage(m);
+            return ReceiveRequestResponse();
+        }
+
+        public bool SendFrame(string message)
+        {
+            if (RequestSocket == null) return false;
+            RequestSocket.SendFrame(message);
             return ReceiveRequestResponse();
         }
         public bool ReceiveRequestResponse()
@@ -207,13 +226,6 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         }
         #endregion
-        #region public setters
-        public void SetPupilTimestamp(float time)
-        {
-            if (RequestSocket == null) return;
-            RequestSocket.SendFrame("T " + time.ToString("0.00000000"));
-            ReceiveRequestResponse();
-        }
-        #endregion
+
     }
 }

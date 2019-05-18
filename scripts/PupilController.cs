@@ -490,6 +490,12 @@ namespace BrainVR.Eyetracking.PupilLabs
             return _connection.GetPupilTimestamp();
         }
         #endregion
+        #region public setters
+        public void SetPupilTimestamp(float time)
+        {
+            _connection.SendFrame("T " + time.ToString("0.00000000"));
+        }
+        #endregion
     }
 
 }
