@@ -17,11 +17,16 @@ namespace BrainVR.Eyetracking.PupilLabs
         private PupilController _controller;
 
         public bool IsConnected {get { return PupilController.IsConnected; }}
-        public bool IsMonitoring = false;
+        public bool IsMonitoring;
         #region MonoBehaviour
         void OnApplicationQuit()
         {
             Disconnect();
+        }
+        void Update()
+        {
+            if (IsMonitoring) PupilController.Update();
+            if (PupilController.IsCalibrating) PupilController.Calibration.UpdateCalibration();
         }
         #endregion
         #region Public API1
@@ -46,6 +51,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             if (!IsConnected) return;
             if (IsMonitoring) return;
             Debug.Log("Starting monitoring");
+            //PupilController.CalibrationMode = PupilCalibration.Mode._2D;
             PupilController.SubscribeTo("pupil.");
             PupilController.OnReceiveData += DataReceived;
             IsMonitoring = true;

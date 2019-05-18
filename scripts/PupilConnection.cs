@@ -65,6 +65,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             SubscriptionSocketForTopic.Add(topic, new SubscriberSocket(Settings.IPHeader + Settings.Subport));
             SubscriptionSocketForTopic[topic].Subscribe(topic);
 
+            Debug.Log("initializing conneciton " + topic);
             //André: Is this necessary??
             //subscriptionSocketForTopic[topic].Options.SendHighWatermark = PupilSettings.numberOfMessages;// 6;
             SubscriptionSocketForTopic[topic].ReceiveReady += (s, a) =>

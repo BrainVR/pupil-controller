@@ -238,6 +238,11 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             return _connection.SendRequestMessage(dictionary);
         }
+
+        public static void Update()
+        {
+            _connection.UpdateSubscriptionSockets();
+        }
         #endregion
         #region Calibration
         public static PupilCalibration Calibration
