@@ -16,7 +16,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         public PupilConnectionSettings ConnectionSettings;
         private PupilController _controller;
 
-        public bool IsConnected {get { return PupilController.IsConnected; }}
+        public bool IsConnected => PupilController.IsConnected;
         public bool IsMonitoring;
         #region MonoBehaviour
         void OnApplicationQuit()
@@ -64,6 +64,11 @@ namespace BrainVR.Eyetracking.PupilLabs
             PupilController.UnSubscribeFrom("pupil.");
             PupilController.OnReceiveData -= DataReceived;
             IsMonitoring = false;
+            PupilController.Update(); //the sockets are closed during the update
+        }
+        public void ShowDebugMessages(bool bo)
+        {
+            Settings.debug.printMessage = bo;
         }
         public float? GetTimestamp()
         {
@@ -112,7 +117,7 @@ namespace BrainVR.Eyetracking.PupilLabs
             {
                 if (_manager.IsMonitoring) _manager.StopMonitoring();
                 else _manager.StartMonitoring();
-                _manager.Settings.debug.printMessage = _manager.IsMonitoring;
+                _manager.ShowDebugMessages(_manager.IsMonitoring);
             }
             GUILayout.BeginHorizontal("box");
             var time = _manager.GetTimestamp();

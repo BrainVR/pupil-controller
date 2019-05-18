@@ -81,8 +81,6 @@ namespace BrainVR.Eyetracking.PupilLabs
                     _mStream = new MemoryStream(m[1].ToByteArray());
                     byte[] thirdFrame = null;
                     if (m.FrameCount >= 3) thirdFrame = m[2].ToByteArray();
-
-                    Debug.Log(PupilManager.Instance.Settings.debug.printMessage);
                     if (PupilManager.Instance.Settings.debug.printMessageType) Debug.Log(msgType);
                     if (PupilManager.Instance.Settings.debug.printMessage) Debug.Log(MessagePackSerializer.ToJson(m[1].ToByteArray()));
                     if (PupilController.ReceiveDataIsSet) PupilController.ReceiveData(msgType, MessagePackSerializer.Deserialize<Dictionary<string, object>>(_mStream), thirdFrame);

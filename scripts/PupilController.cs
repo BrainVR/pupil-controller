@@ -238,7 +238,6 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             return _connection.SendRequestMessage(dictionary);
         }
-
         public static void Update()
         {
             _connection.UpdateSubscriptionSockets();
