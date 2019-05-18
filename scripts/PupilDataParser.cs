@@ -58,7 +58,6 @@ namespace BrainVR.Eyetracking.PupilLabs
                 }
             }
         }
-
         private static object IDo;
         public static Vector3 ObjectToVector(object source)
         {

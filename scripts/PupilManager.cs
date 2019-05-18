@@ -92,6 +92,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                 //else GUILayout.Label("remote " + PupilTools.Connection.IP + " ( Not Connected )", manager.Settings.GUIStyles[1]);
             }
             manager.Settings = EditorGUILayout.ObjectField(manager.Settings, typeof(PupilSettings), false) as PupilSettings;
+            manager.ConnectionSettings = EditorGUILayout.ObjectField(manager.ConnectionSettings, typeof(PupilConnectionSettings), false) as PupilConnectionSettings;
             var text = manager.IsMonitoring ? "Stop debug monitoring" : "Start debug monitoring";
             if (GUILayout.Button(text))
             {

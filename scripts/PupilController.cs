@@ -69,7 +69,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             }
         }
         #endregion
-
         #region Recording
         private static bool _isRecording;
         public static void StartRecording()
@@ -115,7 +114,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             File.WriteAllText(filePath, recordingString);
         }
         #endregion
-
         #region Dictionary processing
         private static Dictionary<string, object> _gazeDictionary;
         public static Dictionary<string, object> gazeDictionary
@@ -184,7 +182,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             return o as Dictionary<object, object>;
         }
         #endregion
-
         #region Connection
         public static bool IsConnected
         {
@@ -235,7 +232,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             return _connection.sendRequestMessage(dictionary);
         }
         #endregion
-
         #region Calibration
         public static Calibration Calibration
         {
@@ -404,8 +400,13 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
 
         #endregion
+        #region EyeProcesses
         public static bool eyeProcess0;
         public static bool eyeProcess1;
+        public static bool SetDetectionMode()
+        {
+            return Send(new Dictionary<string, object> { { "subject", "set_detection_mapping_mode" }, { "mode", CalibrationType.name } });
+        }
         public static bool StartEyeProcesses()
         {
             var startLeftEye = new Dictionary<string, object> {
@@ -429,13 +430,6 @@ namespace BrainVR.Eyetracking.PupilLabs
             eyeProcess0 = true;
             return true;
         }
-
-        public static bool ReceiveDataIsSet { get { return OnReceiveData != null; } }
-        public static void ReceiveData(string topic, Dictionary<string, object> dictionary, byte[] thirdFrame = null)
-        {
-            if (OnReceiveData != null) OnReceiveData(topic, dictionary, thirdFrame);
-            else Debug.Log("OnReceiveData is not set");
-        }
         public static bool StopEyeProcesses()
         {
             var stopLeftEye = new Dictionary<string, object> {
@@ -455,13 +449,15 @@ namespace BrainVR.Eyetracking.PupilLabs
             eyeProcess0 = false;
             return true;
         }
+        public static bool ReceiveDataIsSet { get { return OnReceiveData != null; } }
+        public static void ReceiveData(string topic, Dictionary<string, object> dictionary, byte[] thirdFrame = null)
+        {
+            if (OnReceiveData != null) OnReceiveData(topic, dictionary, thirdFrame);
+            else Debug.Log("OnReceiveData is not set");
+        }
         public static void StartBinocularVectorGazeMapper()
         {
             Send(new Dictionary<string, object> { { "subject", "" }, { "name", "Binocular_Vector_Gaze_Mapper" } });
-        }
-        public static bool SetDetectionMode()
-        {
-            return Send(new Dictionary<string, object> { { "subject", "set_detection_mapping_mode" }, { "mode", CalibrationType.name } });
         }
         public static bool ActivateFakeCapture()
         {
@@ -478,10 +474,13 @@ namespace BrainVR.Eyetracking.PupilLabs
                     }
                 });
         }
+        #endregion
+        #region Public geters
         public float? GetPupilTimestamp()
         {
             return _connection.GetPupilTimestamp();
         }
+        #endregion
     }
 
 }
