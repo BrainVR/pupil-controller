@@ -13,6 +13,7 @@ namespace BrainVR.Eyetracking.PupilLabs
     {
         public PupilStatus Status;
         public PupilSettings Settings;
+        public PupilConnectionSettings ConnectionSettings;
         private PupilController _controller;
 
         public bool IsConnected {get { return PupilController.IsConnected; }}

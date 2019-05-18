@@ -11,7 +11,7 @@ namespace BrainVR.Eyetracking.PupilLabs
     {
         //TODO redo to non static settings
         private static PupilSettings _settings {get {return PupilManager.Instance.Settings; }}
-        private static PupilConnection _connection = new PupilConnection();
+        private static PupilConnection _connection = new PupilConnection(PupilManager.Instance.ConnectionSettings);
 
         #region Delegates
         //InspectorGUI repaint
@@ -71,7 +71,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         #endregion
 
         #region Recording
-        private static bool isRecording;
+        private static bool _isRecording;
         public static void StartRecording()
         {
             var _p = _settings.recorder.GetRecordingPath().Substring(2);
@@ -82,16 +82,14 @@ namespace BrainVR.Eyetracking.PupilLabs
                 , { "record_eye",true}
             });
 
-            isRecording = true;
-
+            _isRecording = true;
             recordingString = "Timestamp,Identifier,PupilPositionX,PupilPositionY,PupilPositionZ,UnityWorldPositionX,UnityWorldPositionY,UnityWorldPositionZ\n";
         }
         private static string recordingString;
         public static void StopRecording()
         {
             Send(new Dictionary<string, object> { { "subject", "recording.should_stop" } });
-
-            isRecording = false;
+            _isRecording = false;
         }
         private static Vector3 unityWorldPosition;
         private static void AddToRecording(string identifier, Vector3 position, bool isViewportPosition = false)
@@ -122,18 +120,14 @@ namespace BrainVR.Eyetracking.PupilLabs
         private static Dictionary<string, object> _gazeDictionary;
         public static Dictionary<string, object> gazeDictionary
         {
-            get
-            {
-                return _gazeDictionary;
-            }
+            get => _gazeDictionary;
             set
             {
                 _gazeDictionary = value;
                 UpdateGaze();
             }
         }
-
-        private static string[] gazeKeys = { "gaze_point_3d", "norm_pos", "eye_centers_3d", "gaze_normals_3d" };
+        private static readonly string[] gazeKeys = { "gaze_point_3d", "norm_pos", "eye_centers_3d", "gaze_normals_3d" };
         private static string eyeDataKey;
         private static void UpdateGaze()
         {
@@ -147,7 +141,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                         eyeDataKey = key + "_" + PupilDataParser.StringFromDictionary(gazeDictionary, "id"); // we add the identifier to the key
                         var position2D = PupilDataParser.Position(gazeDictionary[key], false);
                         PupilData.AddGazeToEyeData(eyeDataKey, position2D);
-                        if (isRecording) AddToRecording(eyeDataKey, position2D, true);
+                        if (_isRecording) AddToRecording(eyeDataKey, position2D, true);
                         break;
                     case "eye_centers_3d":
                     case "gaze_normals_3d":
@@ -155,28 +149,26 @@ namespace BrainVR.Eyetracking.PupilLabs
                         if (gazeDictionary[key] is Dictionary<object, object>)
                             foreach (var item in (gazeDictionary[key] as Dictionary<object, object>))
                             {
-                                eyeDataKey = key + "_" + item.Key.ToString();
+                                eyeDataKey = key + "_" + item.Key;
                                 var position = PupilDataParser.Position(item.Value, true);
-                                position.y *= -1f;                          // Pupil y axis is inverted
+                                position.y *= -1f; // Pupil y axis is inverted
                                 PupilData.AddGazeToEyeData(eyeDataKey, position);
                             }
                         break;
                     default:
                         var position3D = PupilDataParser.Position(gazeDictionary[key], true);
-                        position3D.y *= -1f;                                // Pupil y axis is inverted
+                        position3D.y *= -1f; // Pupil y axis is inverted
                         PupilData.AddGazeToEyeData(key, position3D);
-                        if (isRecording) AddToRecording(key, position3D);
+                        if (_isRecording) AddToRecording(key, position3D);
                         break;
                 }
             }
         }
-
         private static void CheckModeConsistency()
         {
             var topic = PupilDataParser.StringFromDictionary(gazeDictionary, "topic");
             if (topic.StartsWith("gaze.2D") && CalibrationMode == Calibration.Mode._3D) Debug.Log("We are receiving 2D gaze information while expecting 3D data");
         }
-
         public static string TopicsForDictionary(Dictionary<string, object> dictionary)
         {
             var topics = "";
@@ -188,8 +180,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public static Dictionary<object, object> BaseData()
         {
-            object o;
-            gazeDictionary.TryGetValue("base_data", out o);
+            gazeDictionary.TryGetValue("base_data", out object o);
             return o as Dictionary<object, object>;
         }
         #endregion

@@ -86,8 +86,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         }
         public static float FloatFromDictionary(Dictionary<string, object> source, string key)
         {
-            object valueO;
-            source.TryGetValue(key, out valueO);
+            source.TryGetValue(key, out object valueO);
             return (float)(double)valueO;
         }
         public static string StringFromDictionary(Dictionary<string, object> source, string key)

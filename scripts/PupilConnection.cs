@@ -11,13 +11,8 @@ namespace BrainVR.Eyetracking.PupilLabs
     [Serializable]
     public class PupilConnection
     {
+        public PupilConnectionSettings Settings;
         public bool IsConnected;
-        public string IP = "127.0.0.1";
-        public string IPHeader = ">tcp://127.0.0.1:";
-        public int PORT = 50020;
-        public string Subport = "59485";
-        public bool IsLocal = true;
-        public float ConfidenceThreshold = 0.6f;
 
         private Dictionary<string, SubscriberSocket> _subscriptionSocketForTopic;
         private Dictionary<string, SubscriberSocket> SubscriptionSocketForTopic => _subscriptionSocketForTopic ?? (_subscriptionSocketForTopic =
@@ -26,12 +21,16 @@ namespace BrainVR.Eyetracking.PupilLabs
         private bool _contextExists = false;
 
         private readonly TimeSpan _timeout = new TimeSpan(0, 0, 1); //1sec
+
+        public PupilConnection(PupilConnectionSettings settings)
+        {
+            this.Settings = settings;
+        }
+
         public void InitializeRequestSocket()
         {
-            IPHeader = ">tcp://" + IP + ":";
-
-            Debug.Log("Attempting to connect to : " + IPHeader + PORT);
-
+            Settings.IPHeader = ">tcp://" + Settings.IP + ":";
+            Debug.Log("Attempting to connect to : " + Settings.IPHeader + Settings.PORT);
             if (!_contextExists)
             {
                 AsyncIO.ForceDotNet.Force();
@@ -39,10 +38,9 @@ namespace BrainVR.Eyetracking.PupilLabs
                 NetMQConfig.ContextCreate(true);
                 _contextExists = true;
             }
-
-            RequestSocket = new RequestSocket(IPHeader + PORT);
+            RequestSocket = new RequestSocket(Settings.IPHeader + Settings.PORT);
             RequestSocket.SendFrame("SUB_PORT");
-            IsConnected = RequestSocket.TryReceiveFrameString(_timeout, out Subport);
+            IsConnected = RequestSocket.TryReceiveFrameString(_timeout, out Settings.Subport);
             if (!IsConnected) return;
             CheckPupilVersion();
             SetPupilTimestamp(Time.realtimeSinceStartup);
@@ -50,7 +48,6 @@ namespace BrainVR.Eyetracking.PupilLabs
 
         public string PupilVersion;
         public List<int> PupilVersionNumbers;
-
         public void CheckPupilVersion()
         {
             RequestSocket.SendFrame("v");
@@ -89,7 +86,7 @@ namespace BrainVR.Eyetracking.PupilLabs
         public void InitializeSubscriptionSocket(string topic)
         {
             if (SubscriptionSocketForTopic.ContainsKey(topic)) return;
-            SubscriptionSocketForTopic.Add(topic, new SubscriberSocket(IPHeader + Subport));
+            SubscriptionSocketForTopic.Add(topic, new SubscriberSocket(Settings.IPHeader + Settings.Subport));
             SubscriptionSocketForTopic[topic].Subscribe(topic);
 
             //André: Is this necessary??
@@ -138,7 +135,7 @@ namespace BrainVR.Eyetracking.PupilLabs
                                 var eyeID = PupilDataParser.StringFromDictionary(dictionary, "id");
                                 PupilController.UpdateCalibrationConfidence(eyeID, confidence);
                             }
-                            else if (msgType.StartsWith("gaze") & confidence > ConfidenceThreshold) PupilController.gazeDictionary = dictionary;
+                            else if (msgType.StartsWith("gaze") & confidence > Settings.ConfidenceThreshold) PupilController.gazeDictionary = dictionary;
                             break;
                         case "frame.eye.0":
                         case "frame.eye.1":
@@ -206,10 +203,10 @@ namespace BrainVR.Eyetracking.PupilLabs
             RequestSocket.TryReceiveMultipartMessage(_timeout, ref response);
             if (response.FrameCount == 1)
             {
-                //do try parse
+                //TODO try parse
                 return float.Parse(response.First.ConvertToString());
             }
-            Debug.Log("Received complex message " + response.ToString() + ". Cannot parse to time");
+            Debug.Log("Received complex message " + response + ". Cannot parse to time");
             return null;
 
         }
