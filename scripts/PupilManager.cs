@@ -70,6 +70,10 @@ namespace BrainVR.Eyetracking.PupilLabs
         {
             Settings.debug.printMessage = bo;
         }
+        public void SetTimestamp(float timestamp)
+        {
+            if(IsConnected) _controller.SetPupilTimestamp(timestamp);
+        }
         public float? GetTimestamp()
         {
             return _controller?.GetPupilTimestamp();
@@ -87,7 +91,7 @@ namespace BrainVR.Eyetracking.PupilLabs
     [CustomEditor(typeof(PupilManager))]
     public class CustomPupilManagerInspector : Editor
     {
-        PupilManager _manager;
+        private PupilManager _manager;
 
         void OnEnable()
         {
